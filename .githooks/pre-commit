@@ -1,0 +1,44 @@
+#!/usr/bin/env bash
+#
+# Pre-commit guard — never allow credentials into a commit.
+#
+# DesignRadar reads real secrets from .env (git-ignored). Because updates are
+# committed and pushed automatically (see AGENTS.md → Version Control), this
+# hook is the last line of defense: it refuses any commit that would ship
+# .env or a credential-shaped string. Do not bypass it with --no-verify.
+#
+# Installed locally with:  git config core.hooksPath .githooks
+set -u
+
+# 1. Never stage an environment/secret file (the .env.example is allowed).
+blocked_files=$(git diff --cached --name-only -z 2>/dev/null | tr '\0' '\n' \
+  | grep -E '(^|/)\.env(\.[A-Za-z0-9_-]+)?$' \
+  | grep -v -E '(^|/)\.env\.example$') || true
+
+if [ -n "$blocked_files" ]; then
+  echo "ERROR: pre-commit guard blocked a secrets file:" >&2
+  echo "$blocked_files" | sed 's/^/  /' >&2
+  echo "Never commit secrets. Remove it from the index and try again:" >&2
+  echo "  git restore --staged <file>" >&2
+  exit 1
+fi
+
+# 2. Scan staged file contents for credential-shaped strings.
+#    -I  skips binary files; patterns target real key formats.
+#    Excluded by design:
+#      - test/** — fixtures deliberately contain fake keys ('AIza-...',
+#        'sk-AbCd...') to exercise redaction; they are clearly not real.
+#      - package-lock.json — npm integrity hashes are long base64 runs that
+#        otherwise false-positive.
+PATTERN='AIza[0-9A-Za-z_-]{10,}|ghp_[0-9A-Za-z]{16,}|github_pat_[0-9A-Za-z_]{20,}|gh[ousr]_[0-9A-Za-z]{16,}|sk-[0-9A-Za-z]{16,}|AKIA[0-9A-Z]{16}|SG\.[0-9A-Za-z_-]{16,}|xox[baprs]-[0-9A-Za-z-]{10,}|-----BEGIN (RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----'
+
+matches=$(git grep --cached -I -nE "$PATTERN" -- . ':(exclude)test/**' ':(exclude)package-lock.json' 2>/dev/null || true)
+
+if [ -n "$matches" ]; then
+  echo "ERROR: pre-commit guard found credential-shaped strings in staged files:" >&2
+  echo "$matches" >&2
+  echo "Remove or rotate the credential before committing." >&2
+  exit 1
+fi
+
+exit 0
