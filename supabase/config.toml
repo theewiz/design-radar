@@ -1,0 +1,18 @@
+# Supabase configuration for DesignRadar.
+#
+# Only the Edge Function registration is declared here. Everything else uses
+# Supabase defaults; nothing unrelated is overridden.
+
+project_id = "design-radar"
+
+[functions.daily-radar]
+# Platform-level JWT verification stays enabled. The function calls paid external
+# APIs (Serper, Gemini) and can send a notification, so it must not be reachable
+# anonymously.
+#
+# The pg_cron job in supabase/migrations/005_phase9_scheduling.sql authenticates
+# by sending the service-role JWT as a bearer token, which this setting accepts.
+verify_jwt = true
+
+# DesignRadar uses JavaScript rather than TypeScript.
+entrypoint = './functions/daily-radar/index.js'

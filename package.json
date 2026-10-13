@@ -1,0 +1,35 @@
+{
+  "name": "design-radar",
+  "version": "0.1.0",
+  "description": "Personal job-intelligence application for discovering Senior+ Product Design opportunities on LinkedIn",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "radar": "node src/index.js",
+    "scan": "node src/index.js --scan",
+    "digest": "node src/index.js --digest",
+    "notify:test": "node scripts/notify-test.js",
+    "pretest": "node scripts/sync-edge-sources.js",
+    "test": "node --test test/**/*.test.js",
+    "lint": "node scripts/lint.js",
+    "edge:sync": "node scripts/sync-edge-sources.js",
+    "edge:check": "node scripts/sync-edge-sources.js --check",
+    "edge:serve": "npm run edge:sync && supabase functions serve daily-radar --env-file .env --import-map supabase/functions/import_map.json",
+    "edge:deploy": "npm run edge:sync && supabase functions deploy daily-radar --import-map supabase/functions/import_map.json",
+    "schedule:enable": "node scripts/enable-schedule.js",
+    "smoke:multi-source": "node scripts/smoke-multi-source.js"
+  },
+  "keywords": [
+    "job-intelligence",
+    "product-design",
+    "linkedin",
+    "supabase",
+    "gemini"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.1",
+    "dotenv": "^16.4.7"
+  }
+}
